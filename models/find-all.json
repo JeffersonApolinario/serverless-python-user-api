@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "List Users",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "number"
+        },
+        "pages": {
+          "type": "number"
+        },
+        "limit": {
+          "type": "number"
+        },
+        "totalCount": {
+          "type": "number"
+        },
+        "totalListed": {
+          "type": "number"
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "upadtedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+	}
+}

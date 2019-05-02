@@ -1,0 +1,290 @@
+service: ${self:custom.environment.application.name}
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: ${opt:stage, 'local'}
+  region: ${opt:region, 'us-east-1'}
+  stackName: ${self:custom.environment.application.stack}
+  apiName: ${self:custom.environment.application.name}
+  memorySize: 128
+  timeout: 15
+  versionFunctions: false
+  environment: ${file(config/.env.app.yml):${opt:stage, 'local'}}
+
+package:
+  exclude:
+    - .git/**
+    - .serverless/**
+    - .editorconfig
+    - .eslintrc
+    - .gitignore
+    - package-lock.json
+    - package.json
+    - __tests__/**
+    - config/**
+    - fixtures/**
+    - docker-compose.yml
+    - Dockerfile
+    - documentation/**
+    - README.md
+    - models/**
+    - coverage/**
+    - .dockerignore
+    - bitbucket-pipelines.yml
+    - .vscode/**
+
+plugins:
+  - serverless-offline
+  - serverless-python-requirements
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
+
+custom:
+  serverless-offline:
+    host: 0.0.0.0
+    port: 4002
+  environment: ${file(config/.env.app.yml)}
+  pythonRequirements:
+    fileName: requirements.txt
+    layer:
+      name: ${self:provider.stage}-layerName
+      description: Python requirements lamba layer
+      compatibleRuntimes:
+        - python3.7
+      licenseInfo: GPLv3
+      allowedAccounts:
+        - '*'
+  documentation:
+    api:
+      info:
+        version: '2'
+        title: Serverless boilerplate api
+        description: this documentation base
+    models:
+      -
+        name: "UserFindAll"
+        description: "This is response for find all"
+        contentType: "application/json"
+        schema: ${file(models/find-all.json)}
+      - 
+        name: "UserFindOne"
+        description: "This is response for find one"
+        contentType: "application/json"
+        schema: ${file(models/find-one.json)}
+      - 
+        name: "UserCreate"
+        description: "This is body request for create user"
+        contentType: "application/json"
+        schema: ${file(models/create.json)}
+      - 
+        name: "UserUpdate"
+        description: "This is body request for update user"
+        contentType: "application/json"
+        schema: ${file(models/update.json)}
+      -
+        name: "ResponseId"
+        description: "This is object when response id"
+        contentType: "application/json"
+        schema: ${file(models/response-id.json)}
+      -
+        name: "ResponseSuccessfully"
+        description: "This is object when response message success"
+        contentType: "application/json"
+        schema: ${file(models/response-message.json)}
+
+functions:
+  find_all:
+    handler: services/find_all.handler
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - http:
+          method: GET
+          path: /
+          # private: true
+          cors: true
+          documentation:
+            summary: Method for get list of users
+            queryParams:
+              - 
+                name: limit
+                type: number
+                required: false
+              - 
+                name: sort
+                type: string
+                required: false
+              - 
+                name: page
+                type: number
+                required: false
+              - 
+                name: select
+                type: string
+                required: false
+              - 
+                name: status
+                type: string
+                required: false
+            requestHeaders:
+            -
+              name: "x-api-key"
+              description: "Auth Header send your token"
+              required: true
+            methodResponses:
+              -
+                statusCode: '200'
+                responseModels:
+                  "application/json": UserFindAll
+  find_one:
+    handler: services/find_one.handler
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - http:
+          method: GET
+          path: /{id}
+          # private: true
+          cors: true
+          documentation:
+            summary: Method for get one user
+            requestHeaders:
+            -
+              name: "x-api-key"
+              description: "Auth Header send your token"
+              required: true
+            pathParams:
+              -
+                name: "id"
+                description: "this field is the identification of user"
+                required: true
+                type: string
+            methodResponses:
+              -
+                statusCode: '200'
+                responseModels:
+                  "application/json": UserFindOne
+  create:
+    handler: services/create.handler
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - http:
+          method: POST
+          path: /
+          # private: true
+          cors: true
+          reqValidatorName: onlyBody
+          documentation:
+            summary: Method for create user
+            requestHeaders:
+            -
+              name: "x-api-key"
+              description: "Auth Header send your token"
+              required: true
+            requestModels:
+              "application/json": "UserCreate"
+            methodResponses:
+              -
+                statusCode: '201'
+                responseModels:
+                  "application/json": "ResponseId"
+  update:
+    handler: services/update.handler
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - http:
+          method: PUT
+          path: /{id}
+          # private: true
+          cors: true
+          reqValidatorName: bodyParameters
+          documentation:
+            summary: Method for modify one user
+            requestHeaders:
+            -
+              name: "x-api-key"
+              description: "Auth Header send your token"
+              required: true
+            pathParams:
+              -
+                name: "id"
+                description: "this field is the identification of user"
+                required: true
+                type: string
+            requestModels:
+              "application/json": "UserUpdate"
+            methodResponses:
+              -
+                statusCode: '200'
+                responseModels:
+                  "application/json": "ResponseSuccessfully"
+  delete:
+    handler: services/delete.handler
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - http:
+          method: DELETE
+          path: /{id}
+          # private: true
+          cors: true        
+          reqValidatorName: bodyParameters
+          documentation:
+            summary: Method for set status deleted
+            requestHeaders:
+            -
+              name: "x-api-key"
+              description: "Auth Header send your token"
+              required: true
+            pathParams:
+              -
+                name: "id"
+                description: "this field is the identification of user"
+                required: true
+                type: string
+            methodResponses:
+              -
+                statusCode: '200'
+                responseModels:
+                  "application/json": "ResponseSuccessfully"
+resources:
+  Resources:
+    onlyBody:  
+      Type: "AWS::ApiGateway::RequestValidator"
+      Properties:
+        Name: 'only-body'
+        RestApiId: 
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+    onlyParameters:  
+      Type: "AWS::ApiGateway::RequestValidator"
+      Properties:
+        Name: 'only-Parameters'
+        RestApiId: 
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: false
+        ValidateRequestParameters: true
+    bodyParameters:  
+      Type: "AWS::ApiGateway::RequestValidator"
+      Properties:
+        Name: 'body-parameters'
+        RestApiId: 
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: true
+    responseInvalidBody:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+          application/json: '{"statusCode": 400, "message":"$context.error.validationErrorString"}'
+        ResponseType: BAD_REQUEST_BODY
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        StatusCode: '400'

@@ -1,0 +1,10 @@
+node_modules
+venv
+.serverless
+.vscode
+__pycache__
+**.pyc
+.coverage
+htmlcov/**
+documentation/documentation.json
+documentation/index.html
